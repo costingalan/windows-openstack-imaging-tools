@@ -151,6 +151,8 @@ function Disable-Swap {
     }
 }
 
+
+
 try
 {
     Import-Module "$resourcesDir\ini.psm1"
@@ -158,12 +160,13 @@ try
     $persistDrivers = Get-IniFileValue -Path $configIniPath -Section "DEFAULT" -Key "PersistDriverInstall" -Default $true -AsBoolean
     $purgeUpdates = Get-IniFileValue -Path $configIniPath -Section "DEFAULT" -Key "PurgeUpdates" -Default $false -AsBoolean
     $disableSwap = Get-IniFileValue -Path $configIniPath -Section "DEFAULT" -Key "DisableSwap" -Default $false -AsBoolean
+    $goldImage = Get-IniFileValue -Path $configIniPath -Section "DEFAULT" -Key "GoldImage" -Default $false -AsBoolean
 
     if($installUpdates)
     {
         Install-WindowsUpdates
     }
-    
+
     Clean-WindowsUpdates -PurgeUpdates $purgeUpdates
 
     if ($disableSwap) {
@@ -172,8 +175,18 @@ try
         }
     }
 
+    Run-Defragment
+
+    Clean-UpdateResources
+
+    Release-IP
+
+    if ($goldImage) {
+        shutdown -s -t 0 -f
+    }
+
     $Host.UI.RawUI.WindowTitle = "Installing Cloudbase-Init..."
-    
+
     $programFilesDir = $ENV:ProgramFiles
 
     $CloudbaseInitMsiPath = "$resourcesDir\CloudbaseInit.msi"
@@ -189,12 +202,6 @@ try
 
     $Host.UI.RawUI.WindowTitle = "Running SetSetupComplete..."
     & "$programFilesDir\Cloudbase Solutions\Cloudbase-Init\bin\SetSetupComplete.cmd"
-    
-    Run-Defragment
-
-    Clean-UpdateResources
-
-    Release-IP
 
     $Host.UI.RawUI.WindowTitle = "Running Sysprep..."
     $unattendedXmlPath = "$programFilesDir\Cloudbase Solutions\Cloudbase-Init\conf\Unattend.xml"
