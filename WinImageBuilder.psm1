@@ -1134,6 +1134,7 @@ function New-WindowsFromGoldenImage {
             $resourcesDir = Join-Path -Path $driveLetterGold -ChildPath "UnattendResources"
             Copy-UnattendResources -resourcesDir $resourcesDir -imageInstallationType "Server Standard"
             
+            Download-CloudbaseInit $resourcesDir "AMD64"
             $configValues = @{
                 "InstallUpdates"=$InstallUpdates;
                 "PersistDriverInstall"=$PersistDriverInstall;
@@ -1166,7 +1167,7 @@ function New-WindowsFromGoldenImage {
             Wait-ForVMShutdown $Name
             Remove-VM $Name -Confirm:$False -Force
 
-           Shrink-VHDImage $WindowsImageVHDXPath
+           Resize-VHDImage $WindowsImageVHDXPath
 
            $barePath = Get-PathWithoutExtension $WindowsImageVHDXPath
 
@@ -1187,6 +1188,7 @@ function New-WindowsFromGoldenImage {
             Write-Host $_
             try {
                 Get-VHD $WindowsImageVHDXPath | Dismount-VHD
+            }
             catch {}
         }
     }
