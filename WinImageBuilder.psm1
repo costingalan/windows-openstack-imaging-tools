@@ -1140,7 +1140,7 @@ function New-WindowsFromGoldenImage {
 
         $Name = "WindowsGoldImage-Sysprep" + (Get-Random)
 
-        New-VM -Name $Name -MemoryStartupBytes $SizeBytes -SwitchName $VMSwitch -VHDPath $WindowsImageVHDXPath
+        New-VM -Name $Name -MemoryStartupBytes $Memory -SwitchName $VMSwitch -VHDPath $WindowsImageVHDXPath
         Set-VMProcessor -VMname $Name -count $CpuCores
 
         Start-VM $Name
