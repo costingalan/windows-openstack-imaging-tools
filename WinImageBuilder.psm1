@@ -1109,9 +1109,11 @@ function New-WindowsFromGoldenImage {
         [parameter(Mandatory=$false)]
         [switch]$PurgeUpdates,
         [parameter(Mandatory=$false)]
-        [switch]$DisableSwap,
+        [switch]$DisableSwap
     )
     PROCESS
+    {
+    try
     {
         Execute-Retry {
             Resize-VHD -Path $WindowsImageVHDXPath -SizeBytes $SizeBytes
@@ -1152,21 +1154,21 @@ function New-WindowsFromGoldenImage {
        $barePath = Get-PathWithoutExtension $WindowsImageVHDXPath
 
        if ($Type -eq "MAAS") {
-                $RawImagePath = $barePath + ".img"
-                Write-Output "Converting VHD to RAW"
-                Convert-VirtualDisk $VirtualDiskPath $RawImagePath "RAW"
-                Remove-Item -Force $WindowsImageVHDXPath
-                Compress-Image $RawImagePath $WindowsImagePath
-            }
-            if ($Type -eq "KVM") {
-                $Qcow2ImagePath = $barePath + ".qcow2"
-                Write-Output "Converting VHD to QCow2"
-                Convert-VirtualDisk $VirtualDiskPath $Qcow2ImagePath "qcow2"
-                Remove-Item -Force $WindowsImageVHDXPath
-            }
+            $RawImagePath = $barePath + ".img"
+            Write-Output "Converting VHD to RAW"
+            Convert-VirtualDisk $VirtualDiskPath $RawImagePath "RAW"
+            Remove-Item -Force $WindowsImageVHDXPath
+            Compress-Image $RawImagePath $WindowsImagePath
+        }
+        if ($Type -eq "KVM") {
+            $Qcow2ImagePath = $barePath + ".qcow2"
+            Write-Output "Converting VHD to QCow2"
+            Convert-VirtualDisk $VirtualDiskPath $Qcow2ImagePath "qcow2"
+            Remove-Item -Force $WindowsImageVHDXPath
+        }
     } catch {
         Remove-Item $WindowsImageVHDXPath -Force -ErrorAction SilentlyContinue 
-    }
+    }}
 }
 
 Export-ModuleMember New-WindowsCloudImage, Get-WimFileImagesInfo, New-MaaSImage, Resize-VHDImage,
