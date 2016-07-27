@@ -1075,6 +1075,100 @@ function New-WindowsCloudImage {
     }
 }
 
+function New-WindowsFromGoldenImage {
+    [CmdletBinding()]
+    param
+    (
+        [parameter(Mandatory=$true)]
+        [string]$WindowsImageVHDXPath,
+        [parameter(Mandatory=$true)]
+        [Uint64]$SizeBytes,
+        [parameter(Mandatory=$false)]
+        [string]$ProductKey,
+        [parameter(Mandatory=$false)]
+        [string]$VirtIOISOPath,
+        [parameter(Mandatory=$false)]
+        [switch]$InstallUpdates,
+        [array]$ExtraFeatures = @("Microsoft-Hyper-V"),
+        [parameter(Mandatory=$false)]
+        [string]$ExtraDriversPath,
+        [parameter(Mandatory=$false)]
+        [switch]$PersistDriverInstall = $true,
+        [parameter(Mandatory=$false)]
+        [Uint64]$Memory=2GB,
+        [parameter(Mandatory=$false)]
+        [int]$CpuCores=1,
+        [parameter(Mandatory=$false)]
+        [switch]$RunSysprep=$true,
+        [parameter(Mandatory=$false)]
+        [string]$SwitchName,
+        [parameter(Mandatory=$false)]
+        [switch]$Force=$false,
+        [ValidateSet("MAAS", "KVM", "HYPER-V", ignorecase=$false)]
+        [string]$Type = "MAAS",
+        [parameter(Mandatory=$false)]
+        [switch]$PurgeUpdates,
+        [parameter(Mandatory=$false)]
+        [switch]$DisableSwap,
+    )
+    PROCESS
+    {
+        Execute-Retry {
+            Resize-VHD -Path $WindowsImageVHDXPath -SizeBytes $SizeBytes
+        }
+        $driveLetterGold = (Mount-VHD -Path $WindowsImageVHDXPath -Passthru | Get-Volume).DriveLetter
+
+        if ($ExtraDriversPath) {
+            Dism /Image:$driveLetterGold /Add-Driver /Driver:$ExtraDriversPath /ForceUnsigned /Recurse
+        }
+
+        if ($ExtraFeatures) {
+            foreach ($Feature in $ExtraFeatures) {
+                Execute-Retry {
+                    Dism /Image:$driveLetterGold /Enable-Feature /FeatureName:$Feature /ALL
+                }
+            }
+        }
+
+        $resourcesDir = Join-Path -Path $driveLetterGold -ChildPath "UnattendResources"
+        Copy-UnattendResources $resourcesDir "Server Standard" $InstallMaaSHooks
+
+        Generate-ConfigFile $resourcesDir $configValues
+
+        Dismount-VHD -Path $WindowsImageVHDXPath
+
+        $Name = "WindowsGoldImage-Sysprep" + (Get-Random)
+
+        New-VM -Name $Name -MemoryStartupBytes $SizeBytes -SwitchName $VMSwitch -VHDPath $WindowsImageVHDXPath
+        Set-VMProcessor -VMname $Name -count $CpuCores
+
+        Start-VM $Name
+        Start-Sleep 10
+        Wait-ForVMShutdown $Name
+        Remove-VM $Name -Confirm:$False -Force
+
+       Shrink-VHDImage $WindowsImageVHDXPath
+
+       $barePath = Get-PathWithoutExtension $WindowsImageVHDXPath
+
+       if ($Type -eq "MAAS") {
+                $RawImagePath = $barePath + ".img"
+                Write-Output "Converting VHD to RAW"
+                Convert-VirtualDisk $VirtualDiskPath $RawImagePath "RAW"
+                Remove-Item -Force $WindowsImageVHDXPath
+                Compress-Image $RawImagePath $WindowsImagePath
+            }
+            if ($Type -eq "KVM") {
+                $Qcow2ImagePath = $barePath + ".qcow2"
+                Write-Output "Converting VHD to QCow2"
+                Convert-VirtualDisk $VirtualDiskPath $Qcow2ImagePath "qcow2"
+                Remove-Item -Force $WindowsImageVHDXPath
+            }
+    } catch {
+        Remove-Item $WindowsImageVHDXPath -Force -ErrorAction SilentlyContinue 
+    }
+}
+
 Export-ModuleMember New-WindowsCloudImage, Get-WimFileImagesInfo, New-MaaSImage, Resize-VHDImage,
     New-WindowsOnlineImage
 
