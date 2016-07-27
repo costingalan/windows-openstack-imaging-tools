@@ -175,13 +175,10 @@ try
         }
     }
 
-    Run-Defragment
-
-    Clean-UpdateResources
-
-    Release-IP
-
     if ($goldImage) {
+        # Cleanup
+        Remove-Item -Recurse -Force $resourcesDir
+        Remove-Item -Force "$ENV:SystemDrive\Unattend.xml"
         shutdown -s -t 0 -f
     }
 
@@ -199,6 +196,12 @@ try
     {
         throw "Installing $CloudbaseInitMsiPath failed. Log: $CloudbaseInitMsiLog"
     }
+    Run-Defragment
+
+    Clean-UpdateResources
+
+    Release-IP
+
 
     $Host.UI.RawUI.WindowTitle = "Running SetSetupComplete..."
     & "$programFilesDir\Cloudbase Solutions\Cloudbase-Init\bin\SetSetupComplete.cmd"
