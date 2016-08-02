@@ -153,6 +153,19 @@ function Disable-Swap {
     }
 }
 
+function Skip-Rearm {
+    #Note: On 2008R2 we need to make sure that the sysprep process will not reset the activation status.
+    # We can set the registry key SkipRearm to 1 in order to stop this.
+    Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform\' -Name SkipRearm -Value '1'
+}
+
+function Activate-Windows {
+    #Note: On 2008R2 the initial product key activation fails
+    # so we need to manually activate it using slmgr
+    slmgr /ipk $productKey
+    slmgr /ato
+}
+
 try
 {
     Import-Module "$resourcesDir\ini.psm1"
@@ -160,12 +173,21 @@ try
     $persistDrivers = Get-IniFileValue -Path $configIniPath -Section "DEFAULT" -Key "PersistDriverInstall" -Default $true -AsBoolean
     $purgeUpdates = Get-IniFileValue -Path $configIniPath -Section "DEFAULT" -Key "PurgeUpdates" -Default $false -AsBoolean
     $disableSwap = Get-IniFileValue -Path $configIniPath -Section "DEFAULT" -Key "DisableSwap" -Default $false -AsBoolean
+    $goldImage = Get-IniFileValue -Path $configIniPath -Section "DEFAULT" -Key "GoldImage" -Default $false -AsBoolean
+
+    $p_dirty = Start-Process -NoNewWindow -FilePath "powershell.exe" {Add-Type -AssemblyName System.Windows.Forms;while (1) {[System.Windows.Forms.SendKeys]::SendWait('~');start-sleep 50;}} -PassThru
+    $productKey = Get-IniFileValue -Path $configIniPath -Section "DEFAULT" -Key "ProductKey" -Default $null
+
+    if ($productKey) {
+        Activate-Windows
+        Skip-Rearm
+    }
 
     if($installUpdates)
     {
         Install-WindowsUpdates
     }
-    
+
     Clean-WindowsUpdates -PurgeUpdates $purgeUpdates
 
     if ($disableSwap) {
@@ -174,8 +196,17 @@ try
         }
     }
 
+    $p_dirty | Stop-Process
+
+    if ($goldImage) {
+        # Cleanup
+        Remove-Item -Recurse -Force $resourcesDir
+        Remove-Item -Force "$ENV:SystemDrive\Unattend.xml"
+        shutdown -s -t 0 -f
+    }
+
     $Host.UI.RawUI.WindowTitle = "Installing Cloudbase-Init..."
-    
+
     $programFilesDir = $ENV:ProgramFiles
 
     $CloudbaseInitMsiPath = "$resourcesDir\CloudbaseInit.msi"
@@ -191,7 +222,7 @@ try
 
     $Host.UI.RawUI.WindowTitle = "Running SetSetupComplete..."
     & "$programFilesDir\Cloudbase Solutions\Cloudbase-Init\bin\SetSetupComplete.cmd"
-    
+
     Run-Defragment
 
     Clean-UpdateResources
