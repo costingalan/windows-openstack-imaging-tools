@@ -1078,6 +1078,16 @@ function New-WindowsCloudImage {
     }
 }
 
+function Get-DriveLetterOfVHDX{
+    [Parameter(Mandatory=$true)]
+    param()
+    $driveLetter
+    
+    $driveLetter = ((Get-DiskImage -ImagePath $WindowsImageVHDXPath | Get-Disk | Get-Partition | Get-Volume).DriveLetter + ":")
+    
+    return $driveLetter
+}
+
 function New-WindowsFromGoldenImage {
     [CmdletBinding()]
     param
@@ -1122,19 +1132,16 @@ function New-WindowsFromGoldenImage {
             Execute-Retry {
                 Resize-VHD -Path $WindowsImageVHDXPath -SizeBytes $SizeBytes
             }
-
+            
             Mount-VHD -Path $WindowsImageVHDXPath | Out-Null
             Get-PSDrive | Out-Null
 
-            $driveLetterGold = ((Get-DiskImage -ImagePath $WindowsImageVHDXPath | Get-Disk | Get-Partition | Get-Volume).DriveLetter + ":")
+            $driveLetterGold = Get-DriveLetterOfVHDX
+            
             if ($ExtraDriversPath) {
                 Dism /Image:$driveLetterGold /Add-Driver /Driver:$ExtraDriversPath /ForceUnsigned /Recurse
             }
 
-            $resourcesDir = Join-Path -Path $driveLetterGold -ChildPath "UnattendResources"
-            Copy-UnattendResources -resourcesDir $resourcesDir -imageInstallationType "Server Standard"
-
-            Download-CloudbaseInit $resourcesDir "AMD64"
             $configValues = @{
                 "InstallUpdates"=$InstallUpdates;
                 "PersistDriverInstall"=$PersistDriverInstall;
@@ -1143,7 +1150,15 @@ function New-WindowsFromGoldenImage {
                 "GoldImage"=$false;
             }
 
+            if ($productKey) {
+                $configValues.Add("ProductKey","$productKey")
+            }
+
+            $resourcesDir = Join-Path -Path $driveLetterGold -ChildPath "UnattendResources"
+            Copy-UnattendResources -resourcesDir $resourcesDir -imageInstallationType "Server Standard"
             Generate-ConfigFile $resourcesDir $configValues
+            Download-CloudbaseInit $resourcesDir ([string]"AMD64")
+            
             Dismount-VHD -Path $WindowsImageVHDXPath
 
             $Name = "WindowsGoldImage-Sysprep" + (Get-Random)
@@ -1159,6 +1174,7 @@ function New-WindowsFromGoldenImage {
             } else {
                 $switch = GetOrCreate-Switch
             }
+            
             New-VM -Name $Name -MemoryStartupBytes $Memory -SwitchName $switch.Name -VHDPath $WindowsImageVHDXPath
             Set-VMProcessor -VMname $Name -count $CpuCores
 
@@ -1166,24 +1182,24 @@ function New-WindowsFromGoldenImage {
             Start-Sleep 10
             Wait-ForVMShutdown $Name
             Remove-VM $Name -Confirm:$False -Force
+            
+            Resize-VHDImage $WindowsImageVHDXPath
+ 
+            $barePath = Get-PathWithoutExtension $WindowsImageTargetPath
 
-           Resize-VHDImage $WindowsImageVHDXPath
-
-           $barePath = Get-PathWithoutExtension $WindowsImageTargetPath
-
-           if ($Type -eq "MAAS") {
+            if ($Type -eq "MAAS") {
                 $RawImagePath = $barePath + ".img"
-                Write-Output "Converting VHD to RAW"
-                Convert-VirtualDisk $VirtualDiskPath $RawImagePath "RAW"
+                Write-Output "Converting VHD to RAW" 
+                Convert-VirtualDisk $WindowsImageVHDXPath $RawImagePath "RAW" 
                 Remove-Item -Force $WindowsImageVHDXPath
                 Compress-Image $RawImagePath $WindowsImagePath
-            }
+            }   
             if ($Type -eq "KVM") {
                 $Qcow2ImagePath = $barePath + ".qcow2"
                 Write-Output "Converting VHD to QCow2"
-                Convert-VirtualDisk $VirtualDiskPath $Qcow2ImagePath "qcow2"
+                Convert-VirtualDisk $WindowsImageVHDXPath $Qcow2ImagePath "qcow2"
                 Remove-Item -Force $WindowsImageVHDXPath
-            }
+            } 
         } catch {
             Write-Host $_
             try {
