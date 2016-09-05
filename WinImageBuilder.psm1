@@ -1078,6 +1078,12 @@ function New-WindowsCloudImage {
     }
 }
 
+function Get-DriveLetterOfVHDX {    
+    $driveLetter = ((Get-DiskImage -ImagePath $WindowsImageVHDXPath | Get-Disk | Get-Partition | Get-Volume).DriveLetter + ":")
+
+    return $driveLetter
+}
+
 function New-WindowsFromGoldenImage {
     [CmdletBinding()]
     param
@@ -1126,7 +1132,7 @@ function New-WindowsFromGoldenImage {
             Mount-VHD -Path $WindowsImageVHDXPath | Out-Null
             Get-PSDrive | Out-Null
 
-            $driveLetterGold = ((Get-DiskImage -ImagePath $WindowsImageVHDXPath | Get-Disk | Get-Partition | Get-Volume).DriveLetter + ":")
+            $driveLetterGold = Get-DriveLetterOfVHDX
             if ($ExtraDriversPath) {
                 Dism /Image:$driveLetterGold /Add-Driver /Driver:$ExtraDriversPath /ForceUnsigned /Recurse
             }
