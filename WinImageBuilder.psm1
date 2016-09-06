@@ -644,12 +644,12 @@ function Resize-VHDImage {
         Write-Host "New partition size: $newSizeGB GB"
 
         if ($NewSize -gt $MinSize) {
-            $global:i = 0
+            $local:i = 0
             $step = 100MB
             Execute-Retry {
-                $sizeIncreased = ($NewSize + ($step * $global:i))
+                $sizeIncreased = ($NewSize + ($step * $i))
                 Write-Host "Size increased: $sizeIncreased"
-                $global:i = $global:i + 1
+                $i = $i + 1
                 Resize-Partition -DriveLetter $Drive -Size $sizeIncreased -ErrorAction "Stop"
             }
         }
@@ -1078,13 +1078,9 @@ function New-WindowsCloudImage {
     }
 }
 
-function Get-DriveLetterOfVHDX{
-    [Parameter(Mandatory=$true)]
-    param()
-    $driveLetter
-    
+function Get-DriveLetterOfVHDX{    
     $driveLetter = ((Get-DiskImage -ImagePath $WindowsImageVHDXPath | Get-Disk | Get-Partition | Get-Volume).DriveLetter + ":")
-    
+
     return $driveLetter
 }
 
@@ -1132,12 +1128,11 @@ function New-WindowsFromGoldenImage {
             Execute-Retry {
                 Resize-VHD -Path $WindowsImageVHDXPath -SizeBytes $SizeBytes
             }
-            
+
             Mount-VHD -Path $WindowsImageVHDXPath | Out-Null
             Get-PSDrive | Out-Null
 
             $driveLetterGold = Get-DriveLetterOfVHDX
-            
             if ($ExtraDriversPath) {
                 Dism /Image:$driveLetterGold /Add-Driver /Driver:$ExtraDriversPath /ForceUnsigned /Recurse
             }
@@ -1174,7 +1169,6 @@ function New-WindowsFromGoldenImage {
             } else {
                 $switch = GetOrCreate-Switch
             }
-            
             New-VM -Name $Name -MemoryStartupBytes $Memory -SwitchName $switch.Name -VHDPath $WindowsImageVHDXPath
             Set-VMProcessor -VMname $Name -count $CpuCores
 
@@ -1182,24 +1176,24 @@ function New-WindowsFromGoldenImage {
             Start-Sleep 10
             Wait-ForVMShutdown $Name
             Remove-VM $Name -Confirm:$False -Force
-            
+
             Resize-VHDImage $WindowsImageVHDXPath
- 
+
             $barePath = Get-PathWithoutExtension $WindowsImageTargetPath
 
             if ($Type -eq "MAAS") {
                 $RawImagePath = $barePath + ".img"
-                Write-Output "Converting VHD to RAW" 
-                Convert-VirtualDisk $WindowsImageVHDXPath $RawImagePath "RAW" 
+                Write-Output "Converting VHD to RAW"
+                Convert-VirtualDisk $WindowsImageVHDXPath $RawImagePath "RAW"
                 Remove-Item -Force $WindowsImageVHDXPath
-                Compress-Image $RawImagePath $WindowsImagePath
-            }   
+                Compress-Image $RawImagePath $WindowsImageTargetPath
+            }
             if ($Type -eq "KVM") {
                 $Qcow2ImagePath = $barePath + ".qcow2"
                 Write-Output "Converting VHD to QCow2"
                 Convert-VirtualDisk $WindowsImageVHDXPath $Qcow2ImagePath "qcow2"
                 Remove-Item -Force $WindowsImageVHDXPath
-            } 
+            }
         } catch {
             Write-Host $_
             try {

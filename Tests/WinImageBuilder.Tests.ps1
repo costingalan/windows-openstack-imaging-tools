@@ -183,9 +183,7 @@ Describe "Test New-MaaSImage" {
     }
 }
 
-
 Describe "Test New-WindowsFromGoldenImage"{
-
     Mock Execute-Retry -Verifiable -ModuleName $moduleName {return 0}
     Mock Mount-VHD -Verifiable -ModuleName $moduleName {return 0} 
     Mock Get-DriveLetterOfVHDX -Verifiable -ModuleName $moduleName {return 0}
@@ -208,33 +206,18 @@ Describe "Test New-WindowsFromGoldenImage"{
     Mock Get-VHD -Verifiable -ModuleName $moduleName {return 0}
     
     It "Should Be Zero" {
-     New-WindowsFromGoldenImage -WindowsImageVHDXPath "fakeVirtualDiskPath"`
-       -WindowsImageTargetPath "fakeVirtualDiskPath"`
-        -SizeBytes 5GB | Should Be 0
+        New-WindowsFromGoldenImage -WindowsImageVHDXPath "fakeVirtualDiskPath"`
+            -WindowsImageTargetPath "fakeVirtualDiskPath"`
+            -SizeBytes 5GB | Should Be 0
     }
     
     It "Should Not Throw" {
-     {New-WindowsFromGoldenImage -WindowsImageVHDXPath "fakeVirtualDiskPath"`
-        -WindowsImageTargetPath "fakeVirtualDiskPath"`
-        -SizeBytes 5GB } | Should Not Throw
+        {New-WindowsFromGoldenImage -WindowsImageVHDXPath "fakeVirtualDiskPath"`
+            -WindowsImageTargetPath "fakeVirtualDiskPath"`
+            -SizeBytes 5GB } | Should Not Throw
     }
     
     It "should run all mocked commands" {
         Assert-VerifiableMocks
     }
 }
-
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
