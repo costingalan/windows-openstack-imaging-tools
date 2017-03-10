@@ -52,8 +52,8 @@ function Get-AvailableConfigs {
     $availableConfigs += Get-ConfigFromTemplate -Name "disk_layout" -DefaultValue "BIOS"
     $availableConfigs += Get-ConfigFromTemplate -Name "product_key" 
     $availableConfigs += Get-ConfigFromTemplate -Name "extra_features" 
-    $availableConfigs += Get-ConfigFromTemplate -Name "force" 
-    $availableConfigs += Get-ConfigFromTemplate -Name "install_maas_hooks" -DefaultValue "false"
+    $availableConfigs += Get-ConfigFromTemplate -Name "force" -DefaultValue $false
+    $availableConfigs += Get-ConfigFromTemplate -Name "install_maas_hooks" -DefaultValue $false
     $availableConfigs += Get-ConfigFromTemplate -Name "administrator_password" -DefaultValue "Pa`$`$w0rd" `
                                      -GroupName "vm"
     $availableConfigs += Get-ConfigFromTemplate -Name "external_switch" -GroupName "vm"
@@ -66,33 +66,50 @@ function Get-AvailableConfigs {
     $availableConfigs += Get-ConfigFromTemplate -Name "virtio_iso_path" -GroupName "drivers"
     $availableConfigs += Get-ConfigFromTemplate -Name "virtio_base_path" -GroupName "drivers"
     $availableConfigs += Get-ConfigFromTemplate -Name "drivers_path" -GroupName "drivers"
-    $availableConfigs += Get-ConfigFromTemplate -Name "install_updates" -DefaultValue "false" `
+    $availableConfigs += Get-ConfigFromTemplate -Name "install_updates" -DefaultValue $false `
                                      -GroupName "updates"
-    $availableConfigs += Get-ConfigFromTemplate -Name "purge_updates" -DefaultValue "false" `
+    $availableConfigs += Get-ConfigFromTemplate -Name "purge_updates" -DefaultValue $false `
                                      -GroupName "updates"
-    $availableConfigs += Get-ConfigFromTemplate -Name "run_sysprep" -DefaultValue "true" `
+    $availableConfigs += Get-ConfigFromTemplate -Name "run_sysprep" -DefaultValue $true `
                                      -GroupName "sysprep"
     $availableConfigs += Get-ConfigFromTemplate -Name "unattend_xml_path" -DefaultValue "UnattendTemplate.xml" `
                                      -GroupName "sysprep"
-    $availableConfigs += Get-ConfigFromTemplate -Name "disable_swap" -DefaultValue "false" `
+    $availableConfigs += Get-ConfigFromTemplate -Name "disable_swap" -DefaultValue $false `
                                      -GroupName "sysprep"
-    $availableConfigs += Get-ConfigFromTemplate -Name "persist_drivers_install" -DefaultValue "true" `
+    $availableConfigs += Get-ConfigFromTemplate -Name "persist_drivers_install" -DefaultValue $true `
                                      -GroupName "sysprep"
 
     return $availableConfigs
 }
 
+function Get-ConfigFromTemplate {
+    param(
+        [parameter(Mandatory=$true)]
+        [string]$Name,
+        [parameter(Mandatory=$false)]
+        [string]$DefaultValue="",
+        [parameter(Mandatory=$false)]
+        [string]$GroupName="DEFAULT"
+        )
 
+    return @{'Name' = $Name;'GroupName' = $GroupName; 'DefaultValue'  = $DefaultValue}
+}
 
 function Get-GlobalConfigs {
     param($ConfigPath)
+    $GlobalConfigs = @{}
     $availableConfigs = Get-AvailableConfigs
     foreach($availableConfig in $availableConfigs) {
         # get config from file
+        try {
+            $value = Get-IniFileValue -Path $configPath -Section $availableConfig['GroupName'] -Key $availableConfig['Name'] -Default $availableConfig['Default']
+        } catch {
+            $value = $availableConfig['Default']
+        }
+        $GlobalConfigs += @{$availableConfig['Name'] = $value}
         # add config to the configs by key name
     }
-    $configs = {}
-    return $configs
+    return $GlobalConfigs
 	
 }
 
@@ -1031,5 +1048,5 @@ function New-WindowsCloudImage {
 }
 
 Export-ModuleMember New-WindowsCloudImage, Get-WimFileImagesInfo, New-MaaSImage, Resize-VHDImage,
-    New-WindowsOnlineImage, Add-VirtIODriversFromISO
+    New-WindowsOnlineImage, Add-VirtIODriversFromISO, Get-GlobalConfigs
 
