@@ -43,7 +43,7 @@ $VirtIODriverMappings = @{
 
 
 function Get-AvailableConfigs {
-    $availableConfigs = []
+    $availableConfigs = @()
     $availableConfigs += Get-ConfigFromTemplate -Name "wim_file_path" -DefaultValue "D:\Sources\install.wim"
     $availableConfigs += Get-ConfigFromTemplate -Name "image_name" 
     $availableConfigs += Get-ConfigFromTemplate -Name "image_path" 
@@ -57,7 +57,7 @@ function Get-AvailableConfigs {
     $availableConfigs += Get-ConfigFromTemplate -Name "administrator_password" -DefaultValue "Pa`$`$w0rd" `
                                      -GroupName "vm"
     $availableConfigs += Get-ConfigFromTemplate -Name "external_switch" -GroupName "vm"
-    $availableConfigs += Get-ConfigFromTemplate -Name "cpu_cont" -DefaultValue "1" `
+    $availableConfigs += Get-ConfigFromTemplate -Name "cpu_count" -DefaultValue "1" `
                                      -GroupName "vm"
     $availableConfigs += Get-ConfigFromTemplate -Name "ram_size" -DefaultValue "2048" `
                                      -GroupName "vm"
@@ -103,6 +103,7 @@ function Get-GlobalConfigs {
         # get config from file
         try {
             $value = Get-IniFileValue -Path $configPath -Section $availableConfig['GroupName'] -Key $availableConfig['Name'] -Default $availableConfig['Default']
+	    echo $value
         } catch {
             $value = $availableConfig['Default']
         }
@@ -871,7 +872,7 @@ function New-WindowsOnlineImage {
     param
     (
         [parameter(Mandatory=$false, ValueFromPipeline=$true)]
-        [string]$ConfigFilePath = 
+        [string]$ConfigFilePath ="" 
 
     )
     PROCESS
@@ -966,7 +967,7 @@ function New-WindowsCloudImage {
     [CmdletBinding()]
     Param(
         [parameter(Mandatory=$true, ValueFromPipeline=$true)]
-        [string]$WimFilePath = "D:\Sources\install.wim",
+        [string]$WimFilePath = "D:\Sources\install.wim"
     )
 
     PROCESS
