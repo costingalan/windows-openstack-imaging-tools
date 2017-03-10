@@ -44,11 +44,45 @@ $VirtIODriverMappings = @{
 
 function Get-AvailableConfigs {
     $availableConfigs = []
-    $configWimfilePath = Get-ConfigFromTemplate -Name "wim_file_path" -DefaultValue "Default" `
-                                     -GroupName "DEFAULT"
-    $availableConfigs += $config
-    
+    $availableConfigs += Get-ConfigFromTemplate -Name "wim_file_path" -DefaultValue "D:\Sources\install.wim"
+    $availableConfigs += Get-ConfigFromTemplate -Name "image_name" 
+    $availableConfigs += Get-ConfigFromTemplate -Name "image_path" 
+    $availableConfigs += Get-ConfigFromTemplate -Name "virtual_disk_format" -DefaultValue "VHDX"
+    $availableConfigs += Get-ConfigFromTemplate -Name "image_type" -DefaultValue "MAAS"
+    $availableConfigs += Get-ConfigFromTemplate -Name "disk_layout" -DefaultValue "BIOS"
+    $availableConfigs += Get-ConfigFromTemplate -Name "product_key" 
+    $availableConfigs += Get-ConfigFromTemplate -Name "extra_features" 
+    $availableConfigs += Get-ConfigFromTemplate -Name "force" 
+    $availableConfigs += Get-ConfigFromTemplate -Name "install_maas_hooks" -DefaultValue "false"
+    $availableConfigs += Get-ConfigFromTemplate -Name "administrator_password" -DefaultValue "Pa`$`$w0rd" `
+                                     -GroupName "vm"
+    $availableConfigs += Get-ConfigFromTemplate -Name "external_switch" -GroupName "vm"
+    $availableConfigs += Get-ConfigFromTemplate -Name "cpu_cont" -DefaultValue "1" `
+                                     -GroupName "vm"
+    $availableConfigs += Get-ConfigFromTemplate -Name "ram_size" -DefaultValue "2048" `
+                                     -GroupName "vm"
+    $availableConfigs += Get-ConfigFromTemplate -Name "disk_size" -DefaultValue "40G" `
+                                     -GroupName "vm"
+    $availableConfigs += Get-ConfigFromTemplate -Name "virtio_iso_path" -GroupName "drivers"
+    $availableConfigs += Get-ConfigFromTemplate -Name "virtio_base_path" -GroupName "drivers"
+    $availableConfigs += Get-ConfigFromTemplate -Name "drivers_path" -GroupName "drivers"
+    $availableConfigs += Get-ConfigFromTemplate -Name "install_updates" -DefaultValue "false" `
+                                     -GroupName "updates"
+    $availableConfigs += Get-ConfigFromTemplate -Name "purge_updates" -DefaultValue "false" `
+                                     -GroupName "updates"
+    $availableConfigs += Get-ConfigFromTemplate -Name "run_sysprep" -DefaultValue "true" `
+                                     -GroupName "sysprep"
+    $availableConfigs += Get-ConfigFromTemplate -Name "unattend_xml_path" -DefaultValue "UnattendTemplate.xml" `
+                                     -GroupName "sysprep"
+    $availableConfigs += Get-ConfigFromTemplate -Name "disable_swap" -DefaultValue "false" `
+                                     -GroupName "sysprep"
+    $availableConfigs += Get-ConfigFromTemplate -Name "persist_drivers_install" -DefaultValue "true" `
+                                     -GroupName "sysprep"
+
+    return $availableConfigs
 }
+
+
 
 function Get-GlobalConfigs {
     param($ConfigPath)
@@ -60,7 +94,6 @@ function Get-GlobalConfigs {
     $configs = {}
     return $configs
 	
-{"wim_file_path" = "value"; ""}
 }
 
 
