@@ -40,27 +40,62 @@ and Windows Assessment and Deployment Kit (ADK)
 the windows-curtin-hooks and WindowsUpdates git submodules are required.<br/>
 Run `git submodule update --init` to retrieve them
 * Import the WinImageBuilder.psm1 module
-* Use the New-WindowsCloudImage or New-WindowsOnlineCloudImage methods with <br/> the appropriate configuration options
+* Use the New-WindowsCloudImage or New-WindowsOnlineCloudImage methods with <br/> the appropriate configuration file
 
 ### PowerShell image generation example for OpenStack KVM (host requires Hyper-V enabled)
 ```powershell
 git clone https://github.com/cloudbase/windows-openstack-imaging-tools.git
 pushd windows-openstack-imaging-tools
 Import-Module .\WinImageBuilder.psm1
+Create a config.ini file with the necesary parameters for the function you want to use
+Example:
 
+[DEFAULT]
+# The location of the WIM file from the Windows ISO
+wim_file_path = D:\sources\install.wim
+# The flavor of windows that you desire
+image_name = Windows Server 2012 R2 SERVERSTANDARD
 # The Windows image file path that will be generated
-$windowsImagePath = "C:\images\my-windows-image.qcow2"
+image_path = "${ENV:TEMP}\win2012-image.vhdx"
+# The disk format you desire (Select between VHD, VHDX, QCow2, VMDK or RAW)
+virtual_disk_format = VHDX
+# The type of image you desire (Choose between MAAS, KVM and Hyper-V)
+image_type = Hyper-V
+# Name of the extra features to enable on the generated image
+extra_features = "hyper-v"
+# The disk layout that you desire (either BIOS or UEFI)
+disk_layout = BIOS
+force = false
 
-# The wim file path is the installation image on the Windows ISO
-$wimFilePath = "D:\Sources\install.wim"
+[vm]
+# The password that you want to set for the Administrator account
+administrator_password = Pa$$w0rd
+# Name of an external switch (so the machine has internet acces)
+external_switch = external
+# Number of CPU's that you want the VM to have
+cpu_count = 2
+# Desired RAM size for the VM to use
+ram_size = 2147483648
+# Desired disk size for the VM to use
+disk_size = 42949672960
 
-# Every Windows ISO can contain multiple Windows flavors like Core, Standard, Datacenter
-# Usually, the first image version is the Core one
-$image = (Get-WimFileImagesInfo -WimFilePath $wimFilePath)[0]
+[updates]
+install_updates = false
+purge_updates = false
 
-New-WindowsOnlineImage -WimFilePath $wimFilePath -ImageName $image.ImageName `
-    -WindowsImagePath $windowsImagePath -Type 'KVM' `
-    -SizeBytes 30GB -CpuCores 4 -Memory 4GB -SwitchName 'external'
+[sysprep]
+# Parameter used to clean the OS on the VM, and to prepare it for a first-time use
+run_sysprep = true
+# Path to the UnattendTemplate.xml file (leave unchanged)
+unattend_xml_path = UnattendTemplate.xml
+# Disable swap parameter
+disable_swap = false
+# Persist install drivers parameter
+persist_drivers_install = true
+
+# Use the desired command with the config file you just created
+
+New-WindowsOnlineImage -ConfigFilePath $ConfigFilePath
 
 popd
 
