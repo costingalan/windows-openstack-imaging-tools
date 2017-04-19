@@ -40,27 +40,21 @@ and Windows Assessment and Deployment Kit (ADK)
 the windows-curtin-hooks and WindowsUpdates git submodules are required.<br/>
 Run `git submodule update --init` to retrieve them
 * Import the WinImageBuilder.psm1 module
-* Use the New-WindowsCloudImage or New-WindowsOnlineCloudImage methods with <br/> the appropriate configuration options
+* Use the New-WindowsCloudImage or New-WindowsOnlineCloudImage methods with <br/> the appropriate configuration file
 
 ### PowerShell image generation example for OpenStack KVM (host requires Hyper-V enabled)
 ```powershell
 git clone https://github.com/cloudbase/windows-openstack-imaging-tools.git
 pushd windows-openstack-imaging-tools
 Import-Module .\WinImageBuilder.psm1
+Import Config.psm1
+Create a config.ini file with the necessary parameters for the function you want to use. The parameters can be found in the Config.psm1 module
 
-# The Windows image file path that will be generated
-$windowsImagePath = "C:\images\my-windows-image.qcow2"
+New-WindowsImageConfig -ConfigFilePath $ConfigFilePath
 
-# The wim file path is the installation image on the Windows ISO
-$wimFilePath = "D:\Sources\install.wim"
+# Use the desired command with the config file you just created
 
-# Every Windows ISO can contain multiple Windows flavors like Core, Standard, Datacenter
-# Usually, the first image version is the Core one
-$image = (Get-WimFileImagesInfo -WimFilePath $wimFilePath)[0]
-
-New-WindowsOnlineImage -WimFilePath $wimFilePath -ImageName $image.ImageName `
-    -WindowsImagePath $windowsImagePath -Type 'KVM' `
-    -SizeBytes 30GB -CpuCores 4 -Memory 4GB -SwitchName 'external'
+New-WindowsOnlineImage -ConfigFilePath $ConfigFilePath
 
 popd
 
