@@ -45,7 +45,7 @@ function Get-availableConfigOptionOptions {
           "Description" = "A comma separated array of extra features that will be enabled on the resulting image.
                            These features need to be present in the ISO file."},
         @{"Name" = "force"; "DefaultValue" = $false; "AsBoolean" = $true;
-          "Description" = "It will force the image generation when $RunSysprep is $False or the selected $SwitchName
+          "Description" = "It will force the image generation when RunSysprep is False or the selected SwitchName
                            is not an external one. Use this parameter with caution because it can easily generate
                            unstable images."},
         @{"Name" = "install_maas_hooks"; "DefaultValue" = $false; "AsBoolean" = $true;
@@ -75,7 +75,7 @@ function Get-availableConfigOptionOptions {
         @{"Name" = "drivers_path"; "GroupName" = "drivers";
           "Description" = "The location where additional drivers that are needed for the image are located."},
         @{"Name" = "install_updates"; "GroupName" = "updates"; "DefaultValue" = $false; "AsBoolean" = $true;
-          "Description" = "If set to $true, the latest updates will be downloaded and installed."},
+          "Description" = "If set to true, the latest updates will be downloaded and installed."},
         @{"Name" = "purge_updates"; "GroupName" = "updates"; "DefaultValue" = $false; "AsBoolean" = $true;
           "Description" = "If set to true, will run DISM with /resetbase option. This will reduce the size of
                            WinSXS folder, but after that Windows updates cannot be uninstalled."},
@@ -149,10 +149,16 @@ function Set-IniComment {
 
     $content = Get-Content $Path
     $index = 0
-    $descriptionContent = "# $Description"
+    $lines = @()
+    $descriptionSplited = $Description -split '["\n\r"|"\r\n"|\n|\r]'
+    foreach ($line in $descriptionSplited) {
+        if ($line.trim()) {
+            $lines += "# " + $line.trim()
+        }
+    }
     foreach ($line in $content) {
-        if ($Description -and $line.StartsWith($Key) -and ($content[$index -1] -ne $descriptionContent)) {
-            $content = $content[0..($index -1)], $descriptionContent, $content[$index..($content.Length -1)]
+        if ($Description -and $line.StartsWith($Key) -and ($content[$index -1] -ne $lines)) {
+            $content = $content[0..($index -1)], $lines, $content[$index..($content.Length -1)]
             break
         }
         $index += 1

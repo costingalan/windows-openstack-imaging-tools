@@ -47,11 +47,15 @@ Run `git submodule update --init` to retrieve them
 git clone https://github.com/cloudbase/windows-openstack-imaging-tools.git
 pushd windows-openstack-imaging-tools
 Import-Module .\WinImageBuilder.psm1
-Import Config.psm1
-Create a config.ini file with the necessary parameters for the function you want to use. The parameters can be found in the Config.psm1 module
-
+Import-Module .\Config.psm1
+# Create a config.ini file using the built in function, then set them accordingly to your needs
+$ConfigFilePath = "config.ini"
 New-WindowsImageConfig -ConfigFilePath $ConfigFilePath
 
+# To automate the config options setting:
+Set-IniFileValue -Path $ConfigFilePath -Section "DEFAULT" `
+                                      -Key "wim_file_path" `
+                                      -Value "D:\Sources\install.wim"
 # Use the desired command with the config file you just created
 
 New-WindowsOnlineImage -ConfigFilePath $ConfigFilePath
